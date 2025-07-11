@@ -6,6 +6,7 @@ const FeaturesSection = () => {
   const [visibleBoxes, setVisibleBoxes] = useState<boolean[]>([]);
   const [counters, setCounters] = useState<number[]>([]);
   const sectionRef = useRef<HTMLDivElement>(null);
+  const animationTriggered = useRef(false);
 
   const features = [
     {
@@ -46,7 +47,7 @@ const FeaturesSection = () => {
     }
   ];
 
-  // Count-up animation function
+  // Optimized counter animation
   const animateCounter = (targetValue: number, index: number, duration: number = 1500) => {
     const startTime = Date.now();
     const animate = () => {
@@ -67,12 +68,15 @@ const FeaturesSection = () => {
     requestAnimationFrame(animate);
   };
 
-  // Intersection Observer for animations
+  // Optimized Intersection Observer - trigger only once
   useEffect(() => {
+    if (animationTriggered.current) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && !animationTriggered.current) {
+            animationTriggered.current = true;
             const initialCounters = features.map(() => 0);
             
             // Animate boxes with stagger delay
@@ -88,14 +92,15 @@ const FeaturesSection = () => {
                 if (feature.number !== null) {
                   animateCounter(feature.number, index, 1500);
                 }
-              }, index * 150); // 150ms stagger delay
+              }, index * 150);
             });
             
             setCounters(initialCounters);
+            observer.disconnect(); // Disconnect after triggering
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2, rootMargin: '50px' }
     );
 
     if (sectionRef.current) {
@@ -105,11 +110,13 @@ const FeaturesSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Initialize states
+  // Initialize states only once
   useEffect(() => {
-    setVisibleBoxes(Array(features.length).fill(false));
-    setCounters(Array(features.length).fill(0));
-  }, []);
+    if (visibleBoxes.length === 0) {
+      setVisibleBoxes(Array(features.length).fill(false));
+      setCounters(Array(features.length).fill(0));
+    }
+  }, [visibleBoxes.length]);
 
   return (
     <section ref={sectionRef} className="py-20 bg-slate-900/50 animate-fade-up animate-delay-200">
@@ -152,7 +159,7 @@ const FeaturesSection = () => {
               >
                 <div className="flex items-start gap-4 md:gap-6">
                   <div className="bg-gradient-to-br from-blue-600 to-cyan-600 p-3 md:p-4 rounded-xl group-hover:shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300 flex-shrink-0">
-                    <IconComponent className="h-8 w-8 md:h-10 md:w-10 text-white transition-all duration-300 group-hover:scale-110 group-hover:animate-bounce" />
+                    <IconComponent className="w-8 h-8 md:w-10 md:h-10 text-white transition-all duration-300 group-hover:scale-110 group-hover:animate-bounce" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3 group-hover:text-blue-300 transition-colors duration-300 leading-tight">
